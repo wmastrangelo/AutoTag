@@ -1,5 +1,5 @@
 {
-  "name": "AutoTag",
+  "name": "autotag",
   "displayName": "AutoTag",
   "description": "Will generate json tags from a go struct",
   "version": "0.0.1",
@@ -10,13 +10,13 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:AutoTag.helloWorld"
+    "onCommand:AutoTag.GOAutoTag"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [{
-      "command": "AutoTag.helloWorld",
-      "title": "Hello World"
+      "command": "AutoTag.GOAutoTag",
+      "title": "GO Auto Tag"
     }]
   },
   "scripts": {

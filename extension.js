@@ -8,26 +8,53 @@ const vscode = require('vscode');
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
+async function activate(context) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "AutoTag" is now active!');
+	let handler = async (/** @type {vscode.TextDocument} */ doc) => {
+		if(!doc.fileName.endsWith('.go')){
+			return;
+		}
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('AutoTag.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+		buildTag(doc);
+	}
+	
+	const didOpen = vscode.workspace.onDidOpenTextDocument(doc => handler(doc));
+	const didChange = vscode.workspace.onDidChangeTextDocument(e => handler(e.document));
+	
+	if (vscode.window.activeTextEditor){
+		await handler(vscode.window.activeTextEditor.document);
+	}
+	let disposable = vscode.commands.registerCommand('AutoTag.GOAutoTag', function () {
+		vscode.window.activeTextEditor.document
 
-		// Display a message box to the user
+		
 		vscode.window.showInformationMessage('Hello World from AutoTag!');
 	});
 
 	context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
+function buildTag(doc){
+	const text = doc.getText();
+	getStructs(text)
+
+}
+
+function getStructs(text) {
+	let lines = text.split(/\n/)
+	
+	let structLines = []
+	for( let i = 0; i< lines.length; i++){
+		if(lines[i].includes("struct") && !lines[i].includes("//")){
+			structLines.push(i+1)
+		}
+	}
+	console.log(structLines)
+	return structLines
+}
+
+
+
 function deactivate() {}
 
 module.exports = {

@@ -87,29 +87,47 @@ function tagsExist(lines, start, end){
 function addJSONTags(docData){
 	docData.structs.forEach(function(struct){
 		for(let i = struct.start; i < struct.end-1; i++){
+			if(!struct.tagsExist){
 			let line = docData.lines[i].trim()
 			if(!(line === "")){
 				let word = line.split(/\s/)[0]
 				let jsonTag = "\`json:\""
-				jsonTag += word.charAt(0).toLowerCase();
-				for(let j = 1; j < word.length; j++){
-					if(isLowerCase(word.charAt(j))){
-						jsonTag +=word.charAt(j)
-					} else {
-						jsonTag+=word.charAt(j)
-					}
+				
+				if(isUpperCase(word)){
+					jsonTag += word.toLowerCase()
+				}else{
+					jsonTag += word.charAt(0).toLowerCase();
+				let index = 1;
+				if(isUpperCase(word.charAt(index))){
+				while(isUpperCase(word.charAt(index+1)) && !isNumeric(word.charAt(index))){
+					jsonTag += word.charAt(index).toLowerCase();
+					index++;
+					
 				}
+			}
+
+				for(let j = index; j < word.length; j++){
+						jsonTag +=word.charAt(j)
+				}}
 				jsonTag += "\"\`"
 				console.log(jsonTag)
 			}
-		}
+		}}
 	})
-	
+
 }
 
 function isLowerCase(str)
 {
     return str == str.toLowerCase() && str != str.toUpperCase();
+}
+function isUpperCase(str)
+{
+    return str != str.toLowerCase() && str == str.toUpperCase();
+}
+
+function isNumeric(str){
+	return !isUpperCase(str) && !isLowerCase(str)
 }
 
 

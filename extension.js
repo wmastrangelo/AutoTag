@@ -8,26 +8,21 @@ const vscode = require('vscode');
 /**
  * @param {vscode.ExtensionContext} context
  */
-async function activate(context) {
+ function activate(context) {
 
-	let handler = async (/** @type {vscode.TextDocument} */ doc) => {
+	
+		
+	let disposable = vscode.commands.registerCommand('AutoTag.GOAutoTag',   function () {
+		
+		let doc = vscode.window.activeTextEditor.document
 		if(!doc.fileName.endsWith('.go')){
 			return;
 		}
 
 		const docData = buildObjects(doc);
-		addJSONTags(docData)
-	}
-	
-	const didOpen = vscode.workspace.onDidOpenTextDocument(doc => handler(doc));
-	
-	if (vscode.window.activeTextEditor){
-		await handler(vscode.window.activeTextEditor.document);
-	}
-	let disposable = vscode.commands.registerCommand('AutoTag.GOAutoTag', function () {
-		vscode.window.activeTextEditor.document
+		console.log(docData.jsonTags)
 
-		
+	 placeJSONTags(docData);
 		vscode.window.showInformationMessage('Hello World from AutoTag!');
 	});
 
@@ -37,28 +32,43 @@ async function activate(context) {
 function DocData(lines){
 	this.lines = lines;
 	this.structs = [];
+	this.jsonTags = [];
 }
 
-function Struct(start, end, tagsExist){
+function Struct(start, end, fullTags){
 	this.start = start;
 	this.end = end;
-	this.tagsExist = tagsExist;
+	this.fullTags = fullTags;
+	
+}
+
+function JSONTag(tag, lineNum, charPos){
+	this.tag = tag;
+	this.lineNum = lineNum;
+	this.charPos = charPos
 }
 
 function buildObjects(doc){
 	const text = doc.getText();
 	let lines = text.split(/\n/)
 	const docData = new DocData(lines)
-	const structLines = getStructs(docData.lines)
+	const structLines = getStructLines(docData.lines)
+	
 	
 	for(let i = 0; i < structLines.length; i+=2){
-		docData.structs.push(new Struct(structLines[i], structLines[i+1], tagsExist(docData.lines, structLines[i], structLines[i+1])))
+		let struct = new Struct(structLines[i], structLines[i+1], fullTags(docData.lines, structLines[i], structLines[i+1]))
+		
+		docData.structs.push(struct)
 	}
+	const jsonTags = createJSONTags(docData)
+	
+	docData.jsonTags = jsonTags
+
 
 	return docData
 }
 
-function getStructs(lines) {
+function getStructLines(lines) {
 	let structLines = []
 	for( let i = 0; i< lines.length; i++){
 		if(lines[i].includes("struct") && !lines[i].includes("//")){
@@ -72,7 +82,7 @@ function getStructs(lines) {
 	return structLines;
 }
 
-function tagsExist(lines, start, end){
+function fullTags(lines, start, end){
 		for(let j = start; j < end; j++){
 			if (lines[j].includes("\`")){
 				return true;
@@ -84,38 +94,55 @@ function tagsExist(lines, start, end){
 
 }
 
-function addJSONTags(docData){
+function createJSONTags(docData){
+	let jsonTags = []
 	docData.structs.forEach(function(struct){
 		for(let i = struct.start; i < struct.end-1; i++){
-			if(!struct.tagsExist){
-			let line = docData.lines[i].trim()
+			if(!struct.fullTags){
+			let line = docData.lines[i]
+			let endOfLine = line.length + 4
+			line = line.trim()
+			let json = "\`json:\""
 			if(!(line === "")){
 				let word = line.split(/\s/)[0]
-				let jsonTag = "\`json:\""
+				
 				
 				if(isUpperCase(word)){
-					jsonTag += word.toLowerCase()
+					json += word.toLowerCase()
 				}else{
-					jsonTag += word.charAt(0).toLowerCase();
+					json += word.charAt(0).toLowerCase();
 				let index = 1;
 				if(isUpperCase(word.charAt(index))){
 				while(isUpperCase(word.charAt(index+1)) && !isNumeric(word.charAt(index))){
-					jsonTag += word.charAt(index).toLowerCase();
+					json += word.charAt(index).toLowerCase();
 					index++;
 					
 				}
 			}
 
 				for(let j = index; j < word.length; j++){
-						jsonTag +=word.charAt(j)
+						json +=word.charAt(j)
 				}}
-				jsonTag += "\"\`"
-				console.log(jsonTag)
+				
+				
 			}
+			json += "\"\`"
+				let jsonTag = new JSONTag(json,i, endOfLine)
+				jsonTags.push(jsonTag)
 		}}
 	})
-
+			return jsonTags
 }
+
+async function placeJSONTags(docData){
+	for(const jsonTag of docData.jsonTags) {
+		console.log(jsonTag)
+		await vscode.window.activeTextEditor.edit((editBuilder) =>  {
+			 editBuilder.insert(new vscode.Position(jsonTag.lineNum,jsonTag.charPos),"\t"+ jsonTag.tag);
+			
+		})
+}}
+
 
 function isLowerCase(str)
 {

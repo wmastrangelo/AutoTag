@@ -1,3 +1,4 @@
+const { kMaxLength } = require('buffer');
 const vscode = require('vscode');
 
 /**
@@ -15,7 +16,7 @@ function activate(context) {
 		}
 
 		const jsonTags = buildObjects(doc);
-		console.log(jsonTags)
+		
 
 
 		vscode.window.showInformationMessage('Hello World from AutoTag!');
@@ -40,13 +41,17 @@ function buildObjects(doc) {
 
 		if (lines[i].includes("struct")) {
 			i++;
-			while (!lines[i].includes("}") && !lines[i].includes("\`")) {
-				let jsonTag = createJSONTag(lines[i], i)
-				jsonTags.push(jsonTag)
+			while(!lines[i].includes("}")){
+				if(!lines[i].includes("\`")){
+					let jsonTag = createJSONTag(lines[i], i)
+					jsonTags.push(jsonTag)
+				}
 				i++
 			}
+			
 		}
 	}
+	console.log(jsonTags)
 	placeJSONTags(jsonTags)
 
 }
@@ -91,7 +96,6 @@ function createJSONTag(tagLine, i) {
 
 async function placeJSONTags(jsonTags) {
 	for (const jsonTag of jsonTags) {
-		console.log(jsonTag)
 		await vscode.window.activeTextEditor.edit((editBuilder) => {
 			editBuilder.insert(new vscode.Position(jsonTag.lineNum, jsonTag.charPos), "\t" + jsonTag.tag);
 		})

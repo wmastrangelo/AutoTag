@@ -1,4 +1,3 @@
-const { kMaxLength } = require('buffer');
 const vscode = require('vscode');
 
 /**
@@ -12,48 +11,44 @@ function activate(context) {
 
 		let doc = vscode.window.activeTextEditor.document
 		if (!doc.fileName.endsWith('.go')) {
-			return;
+			vscode.window.showInformationMessage('AutoTag currently only works with .go files!!')
+			return
 		}
 
-		const jsonTags = buildObjects(doc);
-		
+		run(doc)
 
+	})
 
-		vscode.window.showInformationMessage('Hello World from AutoTag!');
-	});
-
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(disposable)
 }
 
 
 
 function JSONTag(tag, lineNum, charPos) {
-	this.tag = tag;
-	this.lineNum = lineNum;
+	this.tag = tag
+	this.lineNum = lineNum
 	this.charPos = charPos
 }
 
-function buildObjects(doc) {
-	const text = doc.getText();
+function run(doc) {
+	const text = doc.getText()
 	let lines = text.split(/\n/)
 	let jsonTags = []
 	for (let i = 0; i < lines.length; i++) {
 
 		if (lines[i].includes("struct")) {
-			i++;
-			while(!lines[i].includes("}")){
-				if(!lines[i].includes("\`")){
+			i++
+			while (!lines[i].includes("}")) {
+				if (!lines[i].includes("\`")) {
 					let jsonTag = createJSONTag(lines[i], i)
 					jsonTags.push(jsonTag)
 				}
 				i++
 			}
-			
+
 		}
 	}
-	console.log(jsonTags)
 	placeJSONTags(jsonTags)
-
 }
 
 
@@ -62,19 +57,18 @@ function createJSONTag(tagLine, i) {
 	let endOfLine = tagLine.length + 4
 	tagLine = tagLine.trim()
 	let json = "\`json:\""
-	if (!(tagLine === "")) {
+	if (tagLine !== "") {
 		let word = tagLine.split(/\s/)[0]
 
 		if (isUpperCase(word)) {
 			json += word.toLowerCase()
 		} else {
-			json += word.charAt(0).toLowerCase();
-			let index = 1;
+			json += word.charAt(0).toLowerCase()
+			let index = 1
 			if (isUpperCase(word.charAt(index))) {
-				while (isUpperCase(word.charAt(index + 1)) && !isNumeric(word.charAt(index))) {
-					json += word.charAt(index).toLowerCase();
-					index++;
-
+				while (isUpperCase(word.charAt(index + 1)) && isNaN(word.charAt(index))) {
+					json += word.charAt(index).toLowerCase()
+					index++
 				}
 			}
 
@@ -86,32 +80,20 @@ function createJSONTag(tagLine, i) {
 	}
 	json += "\"\`"
 	let jsonTag = new JSONTag(json, i, endOfLine)
-	return jsonTag;
+	return jsonTag
 
 }
-
-
-
-
 
 async function placeJSONTags(jsonTags) {
 	for (const jsonTag of jsonTags) {
 		await vscode.window.activeTextEditor.edit((editBuilder) => {
-			editBuilder.insert(new vscode.Position(jsonTag.lineNum, jsonTag.charPos), "\t" + jsonTag.tag);
+			editBuilder.insert(new vscode.Position(jsonTag.lineNum, jsonTag.charPos), "\t" + jsonTag.tag)
 		})
 	}
 }
 
-
-function isLowerCase(str) {
-	return str == str.toLowerCase() && str != str.toUpperCase();
-}
 function isUpperCase(str) {
-	return str != str.toLowerCase() && str == str.toUpperCase();
-}
-
-function isNumeric(str) {
-	return !isUpperCase(str) && !isLowerCase(str)
+	return str != str.toLowerCase() && str == str.toUpperCase()
 }
 
 
